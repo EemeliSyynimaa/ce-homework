@@ -16,9 +16,17 @@ fn main() {
 
         if command == MOV {
             println!(
-                "Command is MOV: {:b} vs {:b} (from {:b}",
-                command, MOV, data[0]
+                "Command is MOV: {:b} vs {:b} (from {:b}) with data {:b}",
+                command, MOV, data[0], data[1]
             );
+
+            let d: u8 = data[0] & 2;
+            let w: u8 = data[0] & 1;
+            let m: u8 = (data[1] & (128 + 64)) >> 6;
+            let reg: u8 = (data[1] & (32 + 16 + 8)) >> 3;
+            let rm: u8 = data[1] & (4 + 2 + 1);
+
+            println!("{:b}{:b}{:b} {:b}{:03b}{:03b}", command, d, w, m, reg, rm);
         }
     }
 }
