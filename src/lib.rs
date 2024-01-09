@@ -19,25 +19,35 @@ impl Config {
 
 const MOV: u8 = 0b100010;
 
+const REG0: [&str; 8] = ["al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"];
+const REG1: [&str; 8] = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"];
+
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let data: Vec<u8> = fs::read(config.path.as_str()).unwrap();
-    println!("Contents of file \"{}\":\n{:?}", config.path, data);
+    println!("; {}:", config.path);
 
     let command: u8 = data[0] >> 2;
 
+    println!("bits 16");
+
     if command == MOV {
-        println!(
-            "Command is MOV: {:b} vs {:b} (from {:b}) with data {:b}",
-            command, MOV, data[0], data[1]
-        );
-
-        let d: u8 = data[0] & 2;
-        let w: u8 = data[0] & 1;
         let m: u8 = (data[1] & (128 + 64)) >> 6;
-        let reg: u8 = (data[1] & (32 + 16 + 8)) >> 3;
-        let rm: u8 = data[1] & (4 + 2 + 1);
 
-        println!("{:b}{:b}{:b} {:b}{:03b}{:03b}", command, d, w, m, reg, rm);
+        if m == 3 {
+            let d: u8 = data[0] & 2;
+            let w: u8 = data[0] & 1;
+            let reg: u8 = (data[1] & (32 + 16 + 8)) >> 3;
+            let rm: u8 = data[1] & (4 + 2 + 1);
+
+            let src: u8 = if d == 0 { reg } else { rm };
+            let dst: u8 = if d == 0 { rm } else { reg };
+
+            if w == 1 {
+                println!("mov {}, {}", REG1[usize::from(dst)], REG1[usize::from(src)]);
+            } else {
+                println!("mov {}, {}", REG0[usize::from(dst)], REG0[usize::from(src)]);
+            }
+        }
     }
 
     Ok(())
