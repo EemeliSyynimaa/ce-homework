@@ -17,21 +17,19 @@ impl Config {
     }
 }
 
-const MOV: u8 = 0b100010;
-
 const REG0: [&str; 8] = ["al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"];
 const REG1: [&str; 8] = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"];
 
-fn process_mov(command: u8, data: &[u8]) -> usize {
+fn mov_register_memory_to_from_register(data: &[u8]) -> usize {
     // println!("; {:b} {:b}", command, data);
 
-    let m: u8 = (data[0] & (128 + 64)) >> 6;
+    let m: u8 = (data[1] & (128 + 64)) >> 6;
 
     if m == 3 {
-        let d: u8 = command & 2;
-        let w: u8 = command & 1;
-        let reg: u8 = (data[0] & (32 + 16 + 8)) >> 3;
-        let rm: u8 = data[0] & (4 + 2 + 1);
+        let d: u8 = data[0] & 2;
+        let w: u8 = data[0] & 1;
+        let reg: u8 = (data[1] & (32 + 16 + 8)) >> 3;
+        let rm: u8 = data[1] & (4 + 2 + 1);
 
         let src: u8 = if d == 0 { reg } else { rm };
         let dst: u8 = if d == 0 { rm } else { reg };
@@ -45,20 +43,36 @@ fn process_mov(command: u8, data: &[u8]) -> usize {
         return 2;
     }
 
-    panic!("MOV command couldn't be processed");
+    panic!("error");
+}
+
+fn mov_immediate_to_register_memory(_data: &[u8]) -> usize {
+    return 1;
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let data: Vec<u8> = fs::read(config.path.as_str()).unwrap();
+    let buf: Vec<u8> = fs::read(config.path.as_str()).unwrap();
     println!("; {}:", config.path);
     println!("bits 16\n");
 
-    let mut i: usize = 0;
-    while i < data.len() {
-        let command: u8 = data[i] >> 2;
+    let mut bytes_read: usize = 0;
+    while bytes_read < buf.len() {
+        let opcode: u8 = buf[bytes_read] >> 2;
+        let data = &buf[bytes_read..buf.len()];
 
-        if command == MOV {
-            i += process_mov(data[i], &data[i+1..data.len()]);
+        // MOV opcodes
+        // Register/memory to/from register
+        if opcode == 0b100010 {
+            bytes_read += mov_register_memory_to_from_register(data);
+        }
+
+        // Immediate to register/memory
+        // Note: we only care about the first four bits
+        else if (opcode >> 2) == 0b1011 {
+            bytes_read += mov_immediate_to_register_memory(data)
+        }
+        else {
+            bytes_read += 1;
         }
     }
 
