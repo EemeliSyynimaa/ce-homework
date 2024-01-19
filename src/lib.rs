@@ -22,7 +22,7 @@ const MOV: u8 = 0b100010;
 const REG0: [&str; 8] = ["al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"];
 const REG1: [&str; 8] = ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di"];
 
-fn process_mov(command: u8, data: &[u8]) {
+fn process_mov(command: u8, data: &[u8]) -> usize {
     // println!("; {:b} {:b}", command, data);
 
     let m: u8 = (data[0] & (128 + 64)) >> 6;
@@ -41,20 +41,24 @@ fn process_mov(command: u8, data: &[u8]) {
         } else {
             println!("mov {}, {}", REG0[usize::from(dst)], REG0[usize::from(src)]);
         }
+
+        return 2;
     }
+
+    panic!("MOV command couldn't be processed");
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let data: Vec<u8> = fs::read(config.path.as_str()).unwrap();
     println!("; {}:", config.path);
     println!("bits 16\n");
-    for i in 0..data.len() / 2 {
-        let c_idx: usize = i * 2;
 
-        let command: u8 = data[c_idx] >> 2;
+    let mut i: usize = 0;
+    while i < data.len() {
+        let command: u8 = data[i] >> 2;
 
         if command == MOV {
-            process_mov(data[c_idx], &data[1..data.len()]);
+            i += process_mov(data[i], &data[i+1..data.len()]);
         }
     }
 
