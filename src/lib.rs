@@ -46,7 +46,21 @@ fn mov_register_memory_to_from_register(data: &[u8]) -> usize {
     panic!("error");
 }
 
-fn mov_immediate_to_register_memory(_data: &[u8]) -> usize {
+fn mov_immediate_to_register(data: &[u8]) -> usize {
+    let w: u8 = data[0] & 8;
+    let reg: u8 = data[0] & (1 + 2 + 4);
+
+    // 8-bit immediate to register
+    if w == 0 {
+        let d: i8 = data[1] as i8;
+        println!("mov {}, {}", REG0[usize::from(reg)], d);
+    }
+
+    // 16-bit immediate to register
+    else {
+        let d: i16 = i16::from_le_bytes([data[1], data[2]]);
+        println!("mov {}, {}", REG1[usize::from(reg)], d);
+    }
     return 1;
 }
 
@@ -66,10 +80,10 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             bytes_read += mov_register_memory_to_from_register(data);
         }
 
-        // Immediate to register/memory
-        // Note: we only care about the first four bits
+        // Immediate to register
+        // Note: we only care about the last four bits
         else if (opcode >> 2) == 0b1011 {
-            bytes_read += mov_immediate_to_register_memory(data)
+            bytes_read += mov_immediate_to_register(data)
         }
         else {
             bytes_read += 1;
